@@ -1,6 +1,6 @@
 {
   "appId": "com.example.pricecomparator",
-  "appName": "Сравнитель цен",
+  "appName": "Тетрис",
   "webDir": "www",
   "bundledWebRuntime": false
 }
