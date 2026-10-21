@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Тетрис</title>
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
@@ -10,50 +10,60 @@
             margin: 0; padding: 0;
             background: #1a1a2e; color: #fff;
             font-family: system-ui, -apple-system, sans-serif;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            height: 100vh; overflow: hidden;
+            display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+            height: 100vh; height: 100dvh; /* Используем 100dvh для точной высоты экрана */
+            overflow: hidden;
         }
         .header {
             display: flex; justify-content: space-between; width: 100%; max-width: 320px;
-            padding: 5px 10px; font-size: 1.1rem; font-weight: bold;
+            padding: 10px; font-size: 1rem; font-weight: bold;
         }
         .score span { color: #e94560; }
+        
+        /* Контейнер для канваса центрирует его */
+        .canvas-container {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+
         canvas {
             background: #16213e;
             border-radius: 8px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
             border: 2px solid #0f3460;
-            /* Важно: не даем канвасу растягиваться больше нужного */
-            max-height: 60vh; 
-            width: auto;
-            object-fit: contain;
         }
+
         .controls {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-            margin-top: 15px;
+            gap: 6px;
+            margin-bottom: 15px;
             width: 100%; max-width: 320px; padding: 0 10px;
         }
         button {
             background: #0f3460; color: white; border: none;
-            padding: 12px 0; border-radius: 10px;
-            font-size: 1.3rem; font-weight: bold;
-            box-shadow: 0 4px 0 #0b2545;
-            transition: transform 0.1s, box-shadow 0.1s;
+            padding: 12px 0; border-radius: 8px;
+            font-size: 1.2rem; font-weight: bold;
+            box-shadow: 0 3px 0 #0b2545;
         }
         button:active {
-            transform: translateY(4px);
+            transform: translateY(3px);
             box-shadow: 0 0 0 #0b2545;
         }
-        .btn-start { background: #e94560; box-shadow: 0 4px 0 #a62c42; grid-column: span 4; font-size: 1rem; margin-top: 5px; padding: 10px;}
+        .btn-start { 
+            background: #e94560; box-shadow: 0 3px 0 #a62c42; 
+            grid-column: span 4; font-size: 0.95rem; padding: 10px;
+            margin-top: 4px;
+        }
         .game-over {
             position: absolute; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.85); display: none;
             flex-direction: column; align-items: center; justify-content: center; z-index: 10;
         }
-        .game-over h2 { color: #e94560; font-size: 2rem; margin-bottom: 10px; }
-        .game-over button { padding: 15px 30px; font-size: 1.2rem; }
+        .game-over h2 { color: #e94560; font-size: 1.8rem; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -63,8 +73,9 @@
         <div id="level">Ур: 1</div>
     </div>
 
-    <!-- Размеры канваса заданы жестко в атрибутах -->
-    <canvas id="game" width="300" height="500"></canvas>
+    <div class="canvas-container">
+        <canvas id="game"></canvas>
+    </div>
 
     <div class="controls">
         <button id="left">←</button>
@@ -86,8 +97,32 @@
 
     const COLS = 10;
     const ROWS = 20;
-    // Вычисляем размер блока исходя из реальных размеров канваса
-    const BLOCK_SIZE = canvas.width / COLS; 
+    let BLOCK_SIZE = 20; // Временное значение, пересчитаем при старте
+
+    // Эта функция подгоняет размер поля под экран телефона
+    function resizeCanvas() {
+        const container = document.querySelector('.canvas-container');
+        // Берем доступную высоту и ширину
+        const maxWidth = container.clientWidth - 20; 
+        const maxHeight = container.clientHeight - 10;
+        
+        // Вычисляем идеальный размер блока
+        const blockW = Math.floor(maxWidth / COLS);
+        const blockH = Math.floor(maxHeight / ROWS);
+        
+        // Берем наименьшее, чтобы все влезло
+        BLOCK_SIZE = Math.min(blockW, blockH);
+        
+        // Задаем жесткие размеры канвасу (никаких CSS-растяжений!)
+        canvas.width = COLS * BLOCK_SIZE;
+        canvas.height = ROWS * BLOCK_SIZE;
+        
+        drawBoard(); // Перерисовываем при изменении размера
+    }
+
+    // Вызываем при старте и при повороте экрана
+    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 100));
 
     let board = [];
     let score = 0;
@@ -118,14 +153,13 @@
         ctx.fillStyle = color;
         ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE - 1, BLOCK_SIZE - 1);
         ctx.fillStyle = 'rgba(255,255,255,0.2)';
-        ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE - 1, 4);
+        ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE - 1, 3);
     }
 
     function drawBoard() {
         ctx.fillStyle = '#16213e';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Рисуем сетку
         ctx.strokeStyle = 'rgba(255,255,255,0.05)';
         ctx.lineWidth = 1;
         for (let i = 0; i <= COLS; i++) {
@@ -135,22 +169,16 @@
             ctx.beginPath(); ctx.moveTo(0, i * BLOCK_SIZE); ctx.lineTo(canvas.width, i * BLOCK_SIZE); ctx.stroke();
         }
 
-        // Рисуем упавшие блоки
         for (let y = 0; y < ROWS; y++) {
             for (let x = 0; x < COLS; x++) {
-                if (board[y][x] !== 0) {
-                    drawBlock(x, y, board[y][x]);
-                }
+                if (board[y][x] !== 0) drawBlock(x, y, board[y][x]);
             }
         }
 
-        // Рисуем текущую падающую фигуру
         if (currentPiece) {
             currentPiece.forEach((row, y) => {
                 row.forEach((value, x) => {
-                    if (value) {
-                        drawBlock(currentX + x, currentY + y, currentColor);
-                    }
+                    if (value) drawBlock(currentX + x, currentY + y, currentColor);
                 });
             });
         }
@@ -163,9 +191,7 @@
         currentX = Math.floor((COLS - currentPiece[0].length) / 2);
         currentY = 0;
 
-        if (collide()) {
-            gameOver();
-        }
+        if (collide()) gameOver();
     }
 
     function collide() {
@@ -186,11 +212,7 @@
     function merge() {
         currentPiece.forEach((row, y) => {
             row.forEach((value, x) => {
-                if (value) {
-                    if (currentY + y >= 0) {
-                        board[currentY + y][currentX + x] = currentColor;
-                    }
-                }
+                if (value && currentY + y >= 0) board[currentY + y][currentX + x] = currentColor;
             });
         });
         clearLines();
@@ -222,22 +244,16 @@
 
     function rotate() {
         if (!currentPiece) return;
-        const newPiece = currentPiece[0].map((_, i) =>
-            currentPiece.map(row => row[i]).reverse()
-        );
+        const newPiece = currentPiece[0].map((_, i) => currentPiece.map(row => row[i]).reverse());
         const oldPiece = currentPiece;
         currentPiece = newPiece;
-        if (collide()) {
-            currentPiece = oldPiece;
-        }
+        if (collide()) currentPiece = oldPiece;
     }
 
     function move(dir) {
         if (!currentPiece) return;
         currentX += dir;
-        if (collide()) {
-            currentX -= dir;
-        }
+        if (collide()) currentX -= dir;
     }
 
     function drop() {
@@ -256,9 +272,8 @@
         lastTime = time;
         
         dropCounter += deltaTime;
-        if (dropCounter > dropInterval) {
-            drop();
-        }
+        if (dropCounter > dropInterval) drop();
+
         drawBoard();
         requestAnimationFrame(update);
     }
@@ -272,7 +287,10 @@
         document.getElementById('level').innerText = 'Ур: 1';
         document.getElementById('gameOverScreen').style.display = 'none';
         gameRunning = true;
+        
+        resizeCanvas(); // Пересчитываем размер поля перед началом
         spawnPiece();
+        
         lastTime = performance.now();
         update();
     }
@@ -283,7 +301,7 @@
         document.getElementById('gameOverScreen').style.display = 'flex';
     }
 
-    // Кнопки
+    // Управление
     document.getElementById('left').addEventListener('click', () => { if(gameRunning) move(-1); });
     document.getElementById('right').addEventListener('click', () => { if(gameRunning) move(1); });
     document.getElementById('down').addEventListener('click', () => { if(gameRunning) drop(); });
@@ -291,7 +309,6 @@
     document.getElementById('startBtn').addEventListener('click', startGame);
     document.getElementById('restartBtn').addEventListener('click', startGame);
 
-    // Свайпы
     let touchStartX = 0;
     let touchStartY = 0;
     let touchMoved = false;
@@ -305,27 +322,26 @@
     canvas.addEventListener('touchmove', e => {
         if (!gameRunning) return;
         const touchX = e.touches[0].clientX;
-        const touchY = e.touches[0].clientY;
         const diffX = touchX - touchStartX;
-        const diffY = touchY - touchStartY;
 
-        if (Math.abs(diffX) > Math.abs(diffY)) {
-            if (Math.abs(diffX) > 30) {
-                move(diffX > 0 ? 1 : -1);
-                touchStartX = touchX;
-                touchMoved = true;
-            }
+        if (Math.abs(diffX) > 30) {
+            move(diffX > 0 ? 1 : -1);
+            touchStartX = touchX;
+            touchMoved = true;
         }
     }, {passive: true});
 
     canvas.addEventListener('touchend', e => {
         if (!gameRunning || touchMoved) return;
-        // Если это был просто тап (без свайпа), поворачиваем фигуру
         rotate();
     });
 
-    createBoard();
-    drawBoard();
+    // Инициализация при запуске приложения
+    window.onload = () => {
+        resizeCanvas();
+        createBoard();
+        drawBoard();
+    };
 </script>
 </body>
 </html>
