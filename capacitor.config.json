@@ -1,0 +1,6 @@
+{
+  "appId": "com.example.pricecomparator",
+  "appName": "Сравнитель цен",
+  "webDir": "www",
+  "bundledWebRuntime": false
+}
